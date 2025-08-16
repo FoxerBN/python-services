@@ -1,0 +1,60 @@
+services:
+  user-service:
+    build:
+      context: ./user_service
+    container_name: user-service
+    ports:
+      - "9999:8000"
+    volumes:
+      - ./user_service/db:/app/db
+    env_file:
+      - ./user_service/.env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://127.0.0.1:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  stock-service:
+    build:
+      context: ./stock-service
+    container_name: stock-service
+    ports:
+      - "9990:9990"
+    volumes:
+      - ./stock-service/db:/app/db
+    env_file:
+      - ./stock-service/.env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://127.0.0.1:9990/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  order-service:
+    build:
+      context: ./order_service
+    container_name: order-service
+    env_file:
+      - ./order_service/.env
+    environment:
+      STOCK_SERVICE_CHECK:    http://stock-service:9990/api/v1/stock/check
+      STOCK_SERVICE_DECREASE: http://stock-service:9990/api/v1/stock/decrease
+      USER_SERVICE_URL:       http://user-service:8000
+    ports:
+      - "9991:9991"
+    volumes:
+      - ./order_service/db:/app/db
+    restart: unless-stopped
+    depends_on:
+      user-service:
+        condition: service_healthy
+      stock-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://127.0.0.1:9991/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

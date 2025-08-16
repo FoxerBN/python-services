@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+pydantic
+requests
+python-dotenv
+httpx
+sqlalchemy
+gunicorn
